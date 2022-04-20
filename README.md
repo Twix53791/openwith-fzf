@@ -34,10 +34,10 @@ Set zathura and emacs as potential applications opening pdf files.
 ## Configuration
 
 It is a very simple script, so you probably can edit it to customize it yourself. You can also use the 'build-in' variables to ajdust some settings:
-- maxargs limit the number of arguments the script will check (=the max limit of files to open), 100 by default.
-- maxdeepcheck does the same, but for the sub function 'deepcheck' which tries to determine the file type using the linux 'file' command if the files have no extension known.
-- alphsort : sort the application list in an alphabetic number.
-- warningmsg and filescount : enable/disable the 1) warning messages if a directory is selected or if several (and potentially incompatible) file types are selected, 2) the number of files taked as arguments.
+- ```maxargs``` limit the number of arguments the script will check (=the max limit of files to open), 100 by default.
+- ```maxdeepcheck``` does the same, but for the sub function 'deepcheck' which tries to determine the file type using the linux 'file' command if the files have no extension known.
+- ```alphsort``` : sort the application list in an alphabetic number.
+- ```warningmsg``` and ```filescount``` : enable/disable the 1) warning messages if a directory is selected or if several (and potentially incompatible) file types are selected, 2) the number of files taked as arguments.
 
 ## Hack tips
 
