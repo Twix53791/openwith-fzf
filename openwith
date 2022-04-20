@@ -7,6 +7,7 @@
 # So I share it only to give an idea of what can be done simply with a bit of bash and fzf...
 # The applications set here are those of my computer, obviously, you should change them to yours...
 
+#==========================================================
 # TIPS : Check all file extensions in a dir and subdirs:
 #		for file in $(find); do echo "${file##*\.}";done
 #		l='';for f in $(find); do e=$(echo "${f##*\.}");[[ $(echo ${#e}) -lt 7 ]] && t=$e;[[ "$l" != *"$t"* ]] && echo "$t | $f";l+="$t "; done
@@ -14,6 +15,7 @@
 
 # TIPS : echo all file types in a dir and subdirs¬:
 #		l='';for f in $(find); do t=$(file -b "$f" | cut -d' ' -f1);[[ "$l" != *"$t"* ]] && echo "$t | $f";l+="$t "; done
+#==========================================================
 
 #### Settings =============================================
 
