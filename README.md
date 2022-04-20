@@ -31,6 +31,7 @@ _deepcheck(){}
   PDF) em=1 && za=1
 ```
 Set zathura and emacs as potential applications opening pdf files.
+It if better to set the most file type on which you will use the openwith command near the top of the elif conditions in extcheck, as the for loop don't execute the other elif - and so the script runs faster... if it was necessary...
 
 ## Configuration
 
