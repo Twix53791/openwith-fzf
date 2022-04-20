@@ -3,6 +3,8 @@ Very simple, fast and reliable bash script to display an "openwith" menu with fz
 
 This script been designed with the intention of providing an "open with" kind of menu in contexts like [`ranger`](https://github.com/ranger/ranger) or [`fzf-nova`](https://github.com/gotbletu/shownotes/tree/master/fzf_nova). It is just a shell command which takes a list of file paths as arguments and displays a list of applications able to open these files in [`fzf`](https://github.com/junegunn/fzf). Then, it is possible to select in fzf the opening application and the script opens the files with this application.
 
+The script shared here is part of my own config, so obviously, you should edit it to fit the applications installed and used on your desktop...
+
 ## Use
 
 If you copy the script to /usr/local/bin or /usr/bin, you can use it like any application, as a shell command, from the terminal, in a script...
