@@ -5,12 +5,12 @@ This script been designed with the intention of providing an "open with" kind of
 
 ## Use
 
-Is you copy the script to /usr/local/bin or /usr/bin, you can use it like any application, as a shell command, from the terminal, in a script...
+If you copy the script to /usr/local/bin or /usr/bin, you can use it like any application, as a shell command, from the terminal, in a script...
 It takes as only argument a list of files, into quotes if the name contains spaces.
 
-## Manage what application is associate at a file type
+## Manage what application is associated with a file type
 
-The main function of the script checks the file extension ; if no extension is found, it performs (if maxdeepcheck > 0) a 'file' command getting the file type of the sublist of files without known extensions. Both function set the same variables : each application is represented by a variable. If the app varialbe is set to 1, the application will be added to the menu by the 'applist' function. So, to assignate to a file type an application, you have to add a variable specific to this app, and in the appfunction, if your variable have a certain value (1 is ok), append the applist list with the name of the application terminated by \n.
+The main function of the script checks the file extension ; if no extension is found, it performs (if maxdeepcheck > 0) a 'file' command getting the file type of the sublist of files without known extensions. Both functions set the same variables : each application is represented by a variable. If the app variable is set to 1, the application will be added to the menu by the 'applist' function. So, to assignate to a file type an application, you have to add a variable specific to this app, and in the appfunction, if your variable have a certain value (1 is ok), append the applist list with the name of the application terminated by \n.
 
 Example:
 ```bash
