@@ -1,21 +1,12 @@
 #!/bin/bash
 
-# AUTHOR: twix https://github.com/Twix53791/
-
-# This script is part of my own bspwm custom configuration.
-# I am not a proffesionnal prorgammer and it been tested only on my desktop, arch linux + bspwm.
-# So I share it only to give an idea of what can be done simply with a bit of bash and fzf...
-# The applications set here are those of my computer, obviously, you should change them to yours...
-
-#==========================================================
 # TIPS : Check all file extensions in a dir and subdirs:
 #		for file in $(find); do echo "${file##*\.}";done
 #		l='';for f in $(find); do e=$(echo "${f##*\.}");[[ $(echo ${#e}) -lt 7 ]] && t=$e;[[ "$l" != *"$t"* ]] && echo "$t | $f";l+="$t "; done
 #		BUT if the file has no ext, it returns its name...
 
 # TIPS : echo all file types in a dir and subdirs¬:
-#		l='';for f in $(find); do t=$(file -b "$f" | cut -d' ' -f1);[[ "$l" != *"$t"* ]] && echo "$t | $f";l+="$t "; done
-#==========================================================
+#		l='';for f in $(find); do t=$(file -Lb --mime-type "$f" | cut -d' ' -f1);[[ "$l" != *"$t"* ]] && echo "$t | $f";l+="$t "; done
 
 #### Settings =============================================
 
@@ -42,6 +33,11 @@ filescount=1
  ## Files counts color
 export OWFCOLOR="\e[35m"
 
+ ## Set the fzf default options
+  # In my case, there are set in bashrc
+source /home/archx/.bashrc
+#export FZF_DEFAULT_OPTS='your settings'
+
 #### List of applications
  # 	(not necessary, but well to visualize here all app variables)
 
@@ -63,38 +59,44 @@ vl=0	# vlc
 
 _deepcheck (){
 	n=0
-	for file in "${args[@]}"; do
-		ftype=$(file -b "$file" | cut -d' ' -f1)
+	for file in "$@"; do
+		mime=$(file -Lb --mime-type "$file")
+		mtype=${mime%%/*}
+		ftype=${mime##*/}
 
 		case $ftype in
-				JPEG) em=1 && da=1 && gi=1 && no=1;;
-			 	 PNG) em=1 && da=1 && gi=1 && no=1;;
-				RIFF) em=1 && da=1 && gi=1 && no=1;;
-				 PDF) em=1 && za=1 && si=1 && fir=1;;
-			 	 ISO) vl=1;;
-			Unicode) em=1 && at=1 && lo=1 && na=1;;
-			  ASCII) em=1 && at=1 && lo=1 && na=1;;
-			  POSIX) em=1 && at=1 && lo=1 && na=1;;
-	 Bourne-Again) em=1 && at=1 && lo=1 && na=1;;
-	  Lisp/Scheme) em=1 && at=1 && lo=1 && na=1;;
-		 	 Python) em=1 && at=1 && lo=1 && na=1;;
-		 	   Perl) em=1 && at=1 && lo=1 && na=1;;
-		 	   Ruby) em=1 && at=1 && lo=1 && na=1;;
-		 	    C++) em=1 && at=1 && lo=1 && na=1;;
-			 		C) em=1 && at=1 && lo=1 && na=1;;
-			   Java) em=1 && at=1 && lo=1 && na=1;;
-			   JSON) em=1 && at=1 && lo=1 && na=1;;
-			    DOS) em=1 && at=1 && lo=1 && na=1;;
-	 	  makefile) em=1 && at=1 && lo=1 && na=1;;
-		 	   HTML) em=1 && at=1 && lo=1 && na=1 && fir=1;;
-		 	    XML) em=1 && at=1 && lo=1 && na=1 && fir=1;;
-		 		 TeX) em=1 && at=1 && lo=1 && na=1;;
-		 	  LaTeX) em=1 && at=1 && lo=1 && na=1;;
-	 OpenDocument) lo=1;;
-	   		data) em=1 && at=1 && lo=1 && na=1;;
-		  TrueType) fo=1;;
-		  			*) em=1 && at=1 && na=1;;
+						pdf) em=1 && za=1 && si=1 && fir=1;;
+					  epub) za=1;;
+				 vnd.djvu) za=1;;
+ 	vnd.djvu+multipage) za=1;;
+					   ogg) vlc=1;;
+			   mpeg4-iod) vlc=1;;
+	mpeg4-muxcodetable) vlc=1;;
+	vnd.openxmlformats-officedocument.wordprocessingml.document) lo=1 && em=1;;
+	vnd.oasis.opendocument.text) lo=1 && em=1;;
+	vnd.oasis.opendocument.text-template) lo=1;;
+	vnd.oasis.opendocument.presentation) lo=1 && em=1;;
+ 	vnd.openxmlformats-officedocument.spreadsheetml.sheet) lo=1 && em=1;;
+		 	vnd.ms-excel) lo=1 && em=1;;
+					msword) lo=1 && em=1;;
+		 			 excel) lo=1;;
+		 		  msexcel) lo=1;;
+		 	mspowerpoint) lo=1;;
+						rtf) lo=1;;
+						ppt) em=1;;
+						csv) lo=1 && em=1;;
+					 plain) lo=1 && na=1 && em=1;;
+					  json) fi=1 && em=1 && at=1 && lo=1 && na=1;;
+		 				  *) ftype=0;;
 		esac
+
+		if [[ $ftype == 0 ]];then
+			case $mtype in
+				 image) da=1 && gi=1 && no=1;;
+		 application) na=1 && lo=1 && em=1;;
+		 		  text) na=1 && em=1 && at=1 && lo=1;;
+			esac
+		fi
 
 	# Check if there are differents file types
 		if [[ -z $ext ]]; then
@@ -102,9 +104,10 @@ _deepcheck (){
 		elif [[ $ext != 1 ]]; then
 			[[ "$ext" != "$ftype" ]] && ext=1
 		fi
-
+		
+	# Exit when reach the maxdeepcheck variable
 		((n++))
-		[[ $n -gt $maxdeepcheck ]] && break
+		[[ $n -ge $maxdeepcheck ]] && break
 	done
 }
 
@@ -126,26 +129,30 @@ _extcheck (){
 			fi
 		# Set the applist according to the file extensions finded
 
+			### Main used files on my desktop ###
 			  if [[ $file == *.pdf ]];then 	em=1 && za=1 && si=1
 			elif [[ $file == *.jpg ]];then 	em=1 && da=1 && gi=1 && no=1
 			elif [[ $file == *.png ]];then 	em=1 && da=1 && gi=1 && no=1
 			elif [[ $file == *.NEF ]];then 	da=1 && no=1
 			elif [[ $file == *.mp4 ]];then 	vl=1
 			elif [[ $file == *.svg ]];then 	em=1 && gi=1 && no=1
+
 			elif [[ $file == *.md ]];then 	em=1 && lo=1 && at=1 && na=1 &&
 														li=1
-			elif [[ $file == *.odt ]];then 	em=1 && lo=1
-			elif [[ $file == *.doc ]];then 	em=1 && lo=1
-			elif [[ $file == *.docx ]];then 	em=1 && lo=1
 			elif [[ $file == *.txt ]];then 	em=1 && na=1 && at=1 && lo=1
+
 			elif [[ $file == *.sh ]];then 	em=1 && na=1 && at=1 && lo=1
 			elif [[ $file == *.zsh ]];then 	em=1 && na=1 && at=1 && lo=1
 			elif [[ $file == *.py ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.gif ]];then 	gi=1 && no=1
-			elif [[ $file == *.xcf ]];then 	gi=1
-			elif [[ $file == *.img ]];then 	no=1
 			elif [[ $file == *.html ]];then 	em=1 && na=1 && at=1 && lo=1 &&
 														fir=1
+			elif [[ $file == *.djvu ]];then 	za=1
+			elif [[ $file == *.cbz ]];then 	za=1
+			elif [[ $file == *.cbr ]];then 	za=1
+			elif [[ $file == *.odt ]];then 	em=1 && lo=1
+			elif [[ $file == *.doc ]];then 	em=1 && lo=1
+			elif [[ $file == *.docx ]];then 	em=1 && lo=1
+			### rare text/code files ###
 			elif [[ $file == *.xml ]];then 	em=1 && na=1 && at=1 && lo=1 &&
 														fir=1
 			elif [[ $file == *.log ]];then 	em=1 && na=1 && at=1 && lo=1
@@ -156,6 +163,42 @@ _extcheck (){
 			elif [[ $file == *.toml ]];then 	em=1 && na=1 && at=1 && lo=1
 			elif [[ $file == *.backup ]];then 	em=1 && na=1 && at=1 && lo=1
 			elif [[ $file == *.config ]];then 	em=1 && na=1 && at=1 && lo=1
+			### rare image files ###
+			elif [[ $file == *.jpeg ]];then 	em=1 && da=1 && gi=1 && no=1
+			elif [[ $file == *.gif ]];then 	gi=1 && no=1
+			elif [[ $file == *.ico ]];then 	gi=1 && no=1 && da=1 && em=1
+			elif [[ $file == *.raf ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.rw2 ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.bmp ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.dng ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.jps ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.jpe ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.nrw ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.orf ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.pam ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.pbm ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.pcd ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.pef ]];then 	gi=1 && no=1 && da=1
+			elif [[ $file == *.xcf ]];then 	gi=1
+			elif [[ $file == *.webp ]];then 	gi=1
+			elif [[ $file == *.jp2 ]];then 	gi=1
+			elif [[ $file == *.dds ]];then 	gi=1 && notify-send dds
+			elif [[ $file == *.fts ]];then 	gi=1
+			elif [[ $file == *.heif ]];then 	gi=1
+			elif [[ $file == *.ras ]];then 	gi=1
+			elif [[ $file == *.sgi ]];then 	gi=1
+			elif [[ $file == *.xbm ]];then 	gi=1
+			elif [[ $file == *.xwd ]];then 	gi=1
+			elif [[ $file == *.heic ]];then 	gi=1 && da=1
+			elif [[ $file == *.exr ]];then 	gi=1 && da=1
+			elif [[ $file == *.tiff ]];then 	gi=1 && da=1
+			elif [[ $file == *.pfm ]];then 	gi=1 && da=1
+			elif [[ $file == *.hdr ]];then 	gi=1 && da=1
+			elif [[ $file == *.erf ]];then 	da=1
+			elif [[ $file == *.mng ]];then 	da=1
+			elif [[ $file == *.x3f ]];then 	da=1
+			elif [[ $file == *.cr2 ]];then 	da=1
+			### If all test failed - unknown (and execute deep check) ###
 			else unknownlist+=("$file")
 			fi
 			args+=("$file")
@@ -165,7 +208,6 @@ _extcheck (){
 		fi
 	done
 }
-
 
 #### Set the apps list ###
  # The order is important, as it will set the order of the fzf menu
@@ -196,9 +238,12 @@ _applist(){
 trap 'rm $logfile' EXIT
 
 _extcheck "$@"
+
 [[ -z $args ]] && echo "File(s) not found. Is the filename valid?" &&
 	exit
-[[ ! -z $unknownlist ]] && [[ $maxdeepcheck != 0 ]] && _deepcheck "${unknownlist[@]}"
+[[ ! -z $unknownlist ]] && [[ $maxdeepcheck != 0 ]] &&
+	_deepcheck "${unknownlist[@]}"
+
 _applist
 
 #### Sorting ###
@@ -227,8 +272,8 @@ _applist
 	fi
 	[[ -z $output ]] && exit
 
- # Possible fzf options, if not configured by default with FZF_DEFAULT_OPTS:
- #		fzf --reverse +m
+ # Possible fzf options, if not configured by default with FZF_DEFAULT_OPTS (cf. man fzf):
+ #		fzf --reverse +m --color hl+:160 --bind 'tab:abort,shift-right:select'
 
 #### Open the files selected ###
  # I use here my own script,
@@ -237,7 +282,7 @@ _applist
  #	 the script in the background seems buggy (CPU freeze)
 
 	if [[ "$output" == "nano" ]]; then
-		openrule d $output "${args[@]}"
+		openrule - kitty -e $output "${args[@]}"
 	else
 		openrule d $output "${args[@]}" &
 	fi
@@ -248,7 +293,8 @@ _applist
  ## simply opens all in the app selected
 #$output "${args[@]}"
 
- ## Recursive opening (risk to create many different windows)
+ ## Recursive opening (risk to create many different windows,
+  #  but necessary with some applications)
 #for file in "${args[@]}"; do1
 #	$output "$file" &
 #done
