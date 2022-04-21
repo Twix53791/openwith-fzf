@@ -44,7 +44,7 @@ It is a very simple script, so you probably can edit it to customize it yourself
 ## Hack tips
 
 The deepcheck is MUCH slower than the main execution function extcheck. The later use only a simple bash comparison, which is REALLy fast, even when scanning hundreds of files. But the 'file' command is obviously slower, that's why it is usefull to set the maxdeepcheck variable to limit the number of files on which a "deep check" will be perform. Use the grep command will be even slower.
-Take note than the mime type is not so realiable. Many rare and special file types are not well categorized with mime types : for example, many rare image formats are not part of the "image" mime type (x3f will be inode/x-empty, hdr and ras are both application/octet-stream, etc.). So the approach by file extension is in fact quite happy.
+Take note than the mime type is not so realiable. Many rare and special file types are not well categorized with mime types : for example, many rare image formats are not part of the "image" mime type (x3f will be inode/x-empty, hdr and ras are both application/octet-stream, etc.). So the approach by file extension is in fact quite happy. All mime types can be found normally in /usr/share/applications/mimeinfo.cache.
 
 ## Run it from ranger
 
