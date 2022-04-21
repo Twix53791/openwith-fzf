@@ -28,16 +28,18 @@ _applist(){
 ...
 _deepcheck(){}
 ...
-  PDF) em=1 && za=1
+case $ftype in
+  ...
+  pdf) em=1 && za=1
 ```
 Set zathura and emacs as potential applications opening pdf files.
-It if better to set the most file type on which you will use the openwith command near the top of the elif conditions in extcheck, as the for loop don't execute the other elif - and so the script runs faster... if it was necessary...
+It if better to set the most file type on which you will use the openwith command near the top of the elif conditions in extcheck, as the for loop don't execute the other elif - and so the script runs faster... if it was necessary (we talk about gaining thousandth of seconds...when hundreds of files are scanned)... In any case, it is better to add ext checks in extcheck than to use the deepcheck function.
 
 ## Configuration
 
 It is a very simple script, so you probably can edit it to customize it yourself. You can also use the 'build-in' variables to ajdust some settings:
 - ```maxargs``` limit the number of arguments the script will check (=the max limit of files to open), 100 by default.
-- ```maxdeepcheck``` does the same, but for the sub function 'deepcheck' which tries to determine the file type using the linux 'file' command if the files have no extension known.
+- ```maxdeepcheck``` does the same, but for the sub function 'deepcheck' which tries to determine the file type using the linux 'file' command if the files have no extension known, 50 by default (takes less than 0.2 sec to scan 50 files).
 - ```alphsort``` : sort the application list in an alphabetic number.
 - ```warningmsg``` and ```filescount``` : enable/disable the 1) warning messages if a directory is selected or if several (and potentially incompatible) file types are selected, 2) the number of files taked as arguments.
 
