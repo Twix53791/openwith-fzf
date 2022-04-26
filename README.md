@@ -14,7 +14,7 @@ It takes as only arguments a list of files, into quotes if the name contains spa
 passed as arguments, without opening the menu. So it can be use in combinaison with other scripts:
   - `$(openwith -d test.sh) test.sh` will open test.sh with the default application you defined, nano, vim, emacs...
   - `openrule d $(openwith -d toto.pdf) toto.pdf` will open toto.pdf according to the rules defined in openrule, with the default application given by openwith.
- With the -d flag, if several files are passed as arguments and they are not of the same type, openwith output as first argument '1', you can use this behavior in your scripts...
+ With the -d flag, if several files are passed as arguments and they are not of the same type, openwith output as first argument '1', you can use this behavior in your scripts... In fact, openrule has a build-in options : `openrule O toto.pdf` is equivalent of the former command.
   - `openwith -d toto.pdf tata.jpg tutu.jpg` will output: 1 zathura nomacs nomacs
  It can take directories as arguments. It will not open them, but this can be useful for example with [dragon](https://github.com/mwh/dragon), which can drag and drop directories.
 
