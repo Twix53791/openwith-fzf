@@ -1,15 +1,89 @@
 #!/bin/bash
-
+#
+# MADE BY twix https://github.com/Twix53791/openwith-fzf
+#=======================================================
+# This script is intended to:
+#		1) returns the default application you set associated
+#			with a file type (-d flag)
+#		2) display a fzf menu to choose dynamically
+#			an application to open a file, throught a
+#			list of potentials applications, according
+#			to the file(s) type(s)
+#
+# - The -d flag returns (echo) the default application
+#  associated to the file(s) passed as argument.
+# 		openwith -d test.odt -> libreoffice
+# - If a range of files is given as argument and it contains
+#	different file types, openwith returns as first argument
+# 	the number 1. For EACH file it returns the default program
+#	associated with.
+#		openwith -d toto.sh tata.pdf titi -> 1 nano zathura zathura
+#
+# - Without the -d flag, openwith displays a fzf menu to choose
+#		the application with which to open the file.
+#	It accepts MANY files as arguments, virtually an infinite number.
+#	The setting 'maxargs' set a limit above which openwith will not
+#	 check any argument, to avoid mistakes...
+#	 By default, it is set to 100. But openwith is still fast
+#	 for hundreds, even thousands of files, at least the _deepcheck
+#	 function is not executed on a such number of files.
+#  Of course, opening these files with an application if another
+#	 ball of wax
+#
+#:::::::::::::::::::::: WARNING :::::::::::::::::::::::::
+#
+#	This script is part of my personnal desktop setting.
+#  It is 'amateur' and it has been tested only in my
+#	configuration (arch linux + bspwm).
+#	I do not garantee its stability !!!
+#	Feel free to improve it!
+#
+#::: SET YOUR DEFAULT APPLICATIONS ::::::::::::::::::::::
+#
+# 1) in the _applist function, see the section below,
+#		associate your application with a variable
+#			ex: [[ $gi = 1 ]] && applist+="gimp\n"
+#		The syntax have to be that one, 'gimp' is the real
+#		name of the program, which will be take as a command
+#		to run to open the files.
+#	2) Edit or create the variables in the 'ASSOCIATED
+#		APPLICATIONS' below.
+#			ex: image='gi=1 && no=1 && echo 'nomacs''
+#		will set the category 'image', for which the default
+#		application is nomacs (echo nomacs) and the possible
+#		others applications, to display in the fzf menu, are
+#		gimp (gi variable) and also nomacs. You can add here
+#		as much as you want of "associated applications", but
+#		of course only one "default".
+#	3)	To associate the category 'image' with a file type,
+#		edit the _extcheck function (checks file extension)
+#		and the _deepcheck function (checks by mime type).
+#			ex:
+#		in _extcheck:
+#			elif [[ $file == *.jpg ]];then eval $image
+#		associates files ending by .jpg to the category 'image'
+#		in _deepcheck:
+#         case $ftype in
+#             jpeg) eval $image;;
+#
+#:::::::::: DEPENDENCIES ::::::::::::::::::::::::::::::::
+#  fzf
+#	openrule is used by default, but you can desactivate it
+#	 see below, the _openwithfzf function
+#
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#
 # TIPS : Check all file extensions in a dir and subdirs:
 #		for file in $(find); do echo "${file##*\.}";done
 #		l='';for f in $(find); do e=$(echo "${f##*\.}");[[ $(echo ${#e}) -lt 7 ]] && t=$e;[[ "$l" != *"$t"* ]] && echo "$t | $f";l+="$t "; done
 #		BUT if the file has no ext, it returns its name...
-
+#
 # TIPS : echo all file types in a dir and subdirs¬:
 #		l='';for f in $(find); do t=$(file -Lb --mime-type "$f" | cut -d' ' -f1);[[ "$l" != *"$t"* ]] && echo "$t | $f";l+="$t "; done
-
-#### Settings =============================================
-
+#
+#============================================================
+#=== Settings ===============================================
+#============================================================
  ## Set this value to a max, to avoid executing file command
   #  on large number of files, slowing the all process.
   # Setting it to 0 disables the "deep check" completely
@@ -24,7 +98,6 @@ alphsort=1
 
  ## Warning messages file location
 logfile="/tmp/openwithlog"
-touch $logfile
 
  ## Enable files count/warning messages fzf preview display
 warningmsg=1
@@ -35,11 +108,12 @@ export OWFCOLOR="\e[35m"
 
  ## Set the fzf default options
   # In my case, there are set in bashrc
-source /home/archx/.bashrc
-#export FZF_DEFAULT_OPTS='your settings'
+source ~/.bashrc
+#export FZF_DEFAULT_OPTS='the default options you want'
 
-#### List of applications
- # 	(not necessary, but well to visualize here all app variables)
+
+#======= List of the variables below ===========================
+# 	(not necessary, but well to visualize here all app variables)
 
 at=0	# atom
 da=0	# darktable
@@ -55,7 +129,65 @@ za=0	# zathura
 si=0	# sioyek
 vl=0	# vlc
 
-#=============== FUNCTIONS ===================================
+#=========== SET HERE THE ASSOCIATED APPLICATIONS ==============
+# The names of the variables can be anything you want. Nothing
+#  related to the file type or extension.
+
+	md='em=1 && lo=1 && at=1 && na=1 && li=1 && echo 'litemdview''
+	pdf='em=1 && za=1 && si=1 && fir=1 && echo 'zathura''
+	epub='za=1 && echo 'zathura''
+	djvu='za=1 && echo 'zathura''
+	html='em=1 && na=1 && at=1 && lo=1 && fir=1 && echo 'nano''
+	json='fi=1 && em=1 && at=1 && lo=1 && na=1 && echo 'emacs''
+	nef='da=1 && no=1 && echo 'darktable''
+	svg='em=1 && gi=1 && no=1 && echo 'gimp''
+	gif='gi=1 && no=1 && echo 'nomacs''
+
+	libreoffice='lo=1 && echo 'libreoffice''
+	gimp='gi=1 && echo 'gimp''
+	darktable='da=1 && echo 'darktable''
+	emacs='em=1 && echo 'emacs''
+	zathura='za=1 && echo 'zathura''
+
+	genericimage='em=1 && da=1 && gi=1 && no=1 && echo 'nomacs''
+	rareimage='gi=1 && da=1 && echo 'gimp''
+	image='da=1 && gi=1 && no=1 && echo 'nomacs''
+	video='vlc=1 && echo 'vlc''
+	text='na=1 && em=1 && at=1 && lo=1 && echo 'nano''
+	officedoc='lo=1 && em=1 && echo 'libreoffice''
+
+#============ APPLICATIONS LIST ================================
+# Set here the applications associated with the variables above
+
+#### Set the apps list ###
+ # The order is important, as it will set the order of the fzf menu
+ #  but if "alphabetic sort" is used
+ # Footer is a fixed list always display at the end ot the fzf menu
+
+_applist (){
+
+   [[ $gi = 1 ]] && applist+="gimp\n"
+   [[ $da = 1 ]] && applist+="darktable\n"
+   [[ $vl = 1 ]] && applist+="vlc\n"
+   [[ $em = 1 ]] && applist+="emacs\n"
+   [[ $at = 1 ]] && applist+="atom\n"
+   [[ $lo = 1 ]] && applist+="libreoffice\n"
+   [[ $si = 1 ]] && applist+="sioyek\n"
+   [[ $za = 1 ]] && applist+="zathura\n"
+   [[ $fir = 1 ]] && applist+="firefox\n"
+   [[ $no = 1 ]] && applist+="nomacs\n"
+   [[ $li = 1 ]] && appalist+="litemdview\n"
+   [[ $fo = 1 ]] && applist+="fontmatrix\n"
+   [[ $na = 1 ]] && applist+="nano\n"
+
+# Footer = applications always part of the list,
+#	for any file type
+   footer="\ndragon-drop"
+}
+
+#===============================================================
+#=============== FUNCTIONS =====================================
+#===============================================================
 
 _deepcheck (){
 	n=0
@@ -64,37 +196,40 @@ _deepcheck (){
 		mtype=${mime%%/*}
 		ftype=${mime##*/}
 
+	# Set here rules responding to file types
 		case $ftype in
-						pdf) em=1 && za=1 && si=1 && fir=1;;
-					  epub) za=1;;
-				 vnd.djvu) za=1;;
- 	vnd.djvu+multipage) za=1;;
-					   ogg) vlc=1;;
-			   mpeg4-iod) vlc=1;;
-	mpeg4-muxcodetable) vlc=1;;
-	vnd.openxmlformats-officedocument.wordprocessingml.document) lo=1 && em=1;;
-	vnd.oasis.opendocument.text) lo=1 && em=1;;
-	vnd.oasis.opendocument.text-template) lo=1;;
-	vnd.oasis.opendocument.presentation) lo=1 && em=1;;
- 	vnd.openxmlformats-officedocument.spreadsheetml.sheet) lo=1 && em=1;;
-		 	vnd.ms-excel) lo=1 && em=1;;
-					msword) lo=1 && em=1;;
-		 			 excel) lo=1;;
-		 		  msexcel) lo=1;;
-		 	mspowerpoint) lo=1;;
-						rtf) lo=1;;
-						ppt) em=1;;
-						csv) lo=1 && em=1;;
-					 plain) lo=1 && na=1 && em=1;;
-					  json) fi=1 && em=1 && at=1 && lo=1 && na=1;;
+						pdf) eval $pdf;;
+					  epub) eval $epub;;
+				 vnd.djvu) eval $djvu;;
+ 	vnd.djvu+multipage) eval $djvu;;
+					   ogg) eval $video;;
+			   mpeg4-iod) eval $video;;
+	mpeg4-muxcodetable) eval $video;;
+	vnd.openxmlformats-officedocument.wordprocessingml.document) eval $officedoc;;
+	vnd.oasis.opendocument.text) eval $officedoc;;
+	vnd.oasis.opendocument.text-template) eval $libreoffice;;
+	vnd.oasis.opendocument.presentation) eval $officedoc;;
+ 	vnd.openxmlformats-officedocument.spreadsheetml.sheet) eval $officedoc;;
+		 	vnd.ms-excel) eval $officedoc;;
+					msword) eval $officedoc;;
+		 			 excel) eval $libreoffice;;
+		 		  msexcel) eval $libreoffice;;
+		 	mspowerpoint) eval $libreoffice;;
+						rtf) eval $libreoffice;;
+						ppt) eval $emacs;;
+						csv) eval $officedoc;;
+					 plain) eval $text;;
+					  json) eval $json;;
+				  x-empty) eval $text;;
 		 				  *) ftype=0;;
 		esac
 
+	# Set here general rules to mime types, if no file type is found above
 		if [[ $ftype == 0 ]];then
 			case $mtype in
-				 image) da=1 && gi=1 && no=1;;
-		 application) na=1 && lo=1 && em=1;;
-		 		  text) na=1 && em=1 && at=1 && lo=1;;
+				 image) eval $image;;
+		 application) eval $text;;
+		 		  text) eval $text;;
 			esac
 		fi
 
@@ -104,11 +239,11 @@ _deepcheck (){
 		elif [[ $ext != 1 ]]; then
 			[[ "$ext" != "$ftype" ]] && ext=1
 		fi
-		
-	# Exit when reach the maxdeepcheck variable
+
 		((n++))
 		[[ $n -ge $maxdeepcheck ]] && break
 	done
+	[[ $ext == 1 ]] && echo -n 111
 }
 
 _extcheck (){
@@ -130,171 +265,260 @@ _extcheck (){
 		# Set the applist according to the file extensions finded
 
 			### Main used files on my desktop ###
-			  if [[ $file == *.pdf ]];then 	em=1 && za=1 && si=1
-			elif [[ $file == *.jpg ]];then 	em=1 && da=1 && gi=1 && no=1
-			elif [[ $file == *.png ]];then 	em=1 && da=1 && gi=1 && no=1
-			elif [[ $file == *.NEF ]];then 	da=1 && no=1
-			elif [[ $file == *.mp4 ]];then 	vl=1
-			elif [[ $file == *.svg ]];then 	em=1 && gi=1 && no=1
+			  if [[ $file == *.pdf ]];then   eval $pdf
+			elif [[ $file == *.jpg ]];then 	eval $genericimage
+			elif [[ $file == *.png ]];then 	eval $genericimage
+			elif [[ $file == *.NEF ]];then 	eval $nef
+			elif [[ $file == *.mp4 ]];then 	eval $video
+			elif [[ $file == *.svg ]];then 	eval $svg
 
-			elif [[ $file == *.md ]];then 	em=1 && lo=1 && at=1 && na=1 &&
-														li=1
-			elif [[ $file == *.txt ]];then 	em=1 && na=1 && at=1 && lo=1
+			elif [[ $file == *.md ]];then 	eval $md
+			elif [[ $file == *.txt ]];then 	eval $text
 
-			elif [[ $file == *.sh ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.zsh ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.py ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.html ]];then 	em=1 && na=1 && at=1 && lo=1 &&
-														fir=1
-			elif [[ $file == *.djvu ]];then 	za=1
-			elif [[ $file == *.cbz ]];then 	za=1
-			elif [[ $file == *.cbr ]];then 	za=1
-			elif [[ $file == *.odt ]];then 	em=1 && lo=1
-			elif [[ $file == *.doc ]];then 	em=1 && lo=1
-			elif [[ $file == *.docx ]];then 	em=1 && lo=1
+			elif [[ $file == *.sh ]];then 	eval $text
+			elif [[ $file == *.zsh ]];then 	eval $text
+			elif [[ $file == *.py ]];then 	eval $text
+			elif [[ $file == *.html ]];then 	eval $html
+			elif [[ $file == *.djvu ]];then 	eval $zathura
+			elif [[ $file == *.cbz ]];then 	eval $zathura
+			elif [[ $file == *.cbr ]];then 	eval $zathura
+			elif [[ $file == *.odt ]];then 	eval $officedoc
+			elif [[ $file == *.doc ]];then 	eval $officedoc
+			elif [[ $file == *.docx ]];then 	eval $officedoc
 			### rare text/code files ###
-			elif [[ $file == *.xml ]];then 	em=1 && na=1 && at=1 && lo=1 &&
-														fir=1
-			elif [[ $file == *.log ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.ini ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.yml ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.yaml ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.conf ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.toml ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.backup ]];then 	em=1 && na=1 && at=1 && lo=1
-			elif [[ $file == *.config ]];then 	em=1 && na=1 && at=1 && lo=1
+			elif [[ $file == *.xml ]];then 	eval $text
+			elif [[ $file == *.log ]];then 	eval $text
+			elif [[ $file == *.ini ]];then 	eval $text
+			elif [[ $file == *.yml ]];then 	eval $text
+			elif [[ $file == *.yaml ]];then 	eval $text
+			elif [[ $file == *.conf ]];then 	eval $text
+			elif [[ $file == *.toml ]];then 	eval $text
+			elif [[ $file == *.backup ]];then 	eval $text
+			elif [[ $file == *.config ]];then 	eval $text
 			### rare image files ###
-			elif [[ $file == *.jpeg ]];then 	em=1 && da=1 && gi=1 && no=1
-			elif [[ $file == *.gif ]];then 	gi=1 && no=1
-			elif [[ $file == *.ico ]];then 	gi=1 && no=1 && da=1 && em=1
-			elif [[ $file == *.raf ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.rw2 ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.bmp ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.dng ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.jps ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.jpe ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.nrw ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.orf ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.pam ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.pbm ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.pcd ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.pef ]];then 	gi=1 && no=1 && da=1
-			elif [[ $file == *.xcf ]];then 	gi=1
-			elif [[ $file == *.webp ]];then 	gi=1
-			elif [[ $file == *.jp2 ]];then 	gi=1
-			elif [[ $file == *.dds ]];then 	gi=1 && notify-send dds
-			elif [[ $file == *.fts ]];then 	gi=1
-			elif [[ $file == *.heif ]];then 	gi=1
-			elif [[ $file == *.ras ]];then 	gi=1
-			elif [[ $file == *.sgi ]];then 	gi=1
-			elif [[ $file == *.xbm ]];then 	gi=1
-			elif [[ $file == *.xwd ]];then 	gi=1
-			elif [[ $file == *.heic ]];then 	gi=1 && da=1
-			elif [[ $file == *.exr ]];then 	gi=1 && da=1
-			elif [[ $file == *.tiff ]];then 	gi=1 && da=1
-			elif [[ $file == *.pfm ]];then 	gi=1 && da=1
-			elif [[ $file == *.hdr ]];then 	gi=1 && da=1
-			elif [[ $file == *.erf ]];then 	da=1
-			elif [[ $file == *.mng ]];then 	da=1
-			elif [[ $file == *.x3f ]];then 	da=1
-			elif [[ $file == *.cr2 ]];then 	da=1
+			elif [[ $file == *.jpeg ]];then 	eval $genericimage
+			elif [[ $file == *.gif ]];then 	eval $gif
+			elif [[ $file == *.ico ]];then 	eval $genericimage
+			elif [[ $file == *.raf ]];then 	eval $image
+			elif [[ $file == *.rw2 ]];then 	eval $image
+			elif [[ $file == *.bmp ]];then 	eval $image
+			elif [[ $file == *.dng ]];then 	eval $image
+			elif [[ $file == *.jps ]];then 	eval $image
+			elif [[ $file == *.jpe ]];then 	eval $image
+			elif [[ $file == *.nrw ]];then 	eval $image
+			elif [[ $file == *.orf ]];then 	eval $image
+			elif [[ $file == *.pam ]];then 	eval $image
+			elif [[ $file == *.pbm ]];then 	eval $image
+			elif [[ $file == *.pcd ]];then 	eval $image
+			elif [[ $file == *.pef ]];then 	eval $image
+			elif [[ $file == *.xcf ]];then 	eval $gimp
+			elif [[ $file == *.webp ]];then 	eval $gimp
+			elif [[ $file == *.jp2 ]];then 	eval $gimp
+			elif [[ $file == *.dds ]];then 	eval $gimp
+			elif [[ $file == *.fts ]];then 	eval $gimp
+			elif [[ $file == *.heif ]];then 	eval $gimp
+			elif [[ $file == *.ras ]];then 	eval $gimp
+			elif [[ $file == *.sgi ]];then 	eval $gimp
+			elif [[ $file == *.xbm ]];then 	eval $gimp
+			elif [[ $file == *.xwd ]];then 	eval $gimp
+			elif [[ $file == *.heic ]];then 	eval $rareimage
+			elif [[ $file == *.exr ]];then 	eval $rareimage
+			elif [[ $file == *.tiff ]];then 	eval $rareimage
+			elif [[ $file == *.pfm ]];then 	eval $rareimage
+			elif [[ $file == *.hdr ]];then 	eval $rareimage
+			elif [[ $file == *.erf ]];then 	eval $darktable
+			elif [[ $file == *.mng ]];then 	eval $darktable
+			elif [[ $file == *.x3f ]];then 	eval $darktable
+			elif [[ $file == *.cr2 ]];then 	eval $darktable
 			### If all test failed - unknown (and execute deep check) ###
 			else unknownlist+=("$file")
 			fi
 			args+=("$file")
-		elif [[ -d $f ]] && [[ -z $dir ]]; then
+		elif [[ -d $file ]] && [[ -z $dir ]]; then
          echo "WARNING : a directory is selected!\n" >> $logfile
          dir=1
 		fi
 	done
+	[[ ! -z $unknownlist ]] && echo -n 000
+	[[ $ext == 1 ]] && echo -n 111
 }
 
-#### Set the apps list ###
- # The order is important, as it will set the order of the fzf menu
- #  but if "alphabetic sort" is used
- # Footer is a fixed list always display at the end ot the fzf menu
+_appsource(){
+# Get the tree of PPID ancestors
+   pid=$$
+   until [[ -z $pid ]]; do
+      pid=$(ps -o ppid= $pid | tr -d ' ')
+      [[ $pid == 1 ]] && pid=''
+      ancestors+="$pid "
+   done
 
-_applist(){
+# Is any of these processus running?
+   isranger=$(pgrep ranger)
+   istabbed=$(pgrep tabbed)
+	dtpipe=$(pgrep dtpipe.sh)
 
-	[[ $gi = 1 ]] && applist+="gimp\n"
-	[[ $da = 1 ]] && applist+="darktable\n"
-	[[ $vl = 1 ]] && applist+="vlc\n"
-	[[ $em = 1 ]] && applist+="emacs\n"
-	[[ $at = 1 ]] && applist+="atom\n"
-	[[ $lo = 1 ]] && applist+="libreoffice\n"
-	[[ $si = 1 ]] && applist+="sioyek\n"
-	[[ $za = 1 ]] && applist+="zathura\n"
-	[[ $fir = 1 ]] && applist+="firefox\n"
-	[[ $no = 1 ]] && applist+="nomacs\n"
-	[[ $li = 1 ]] && appalist+="litemdview\n"
-	[[ $fo = 1 ]] && applist+="fontmatrix\n"
-	[[ $na = 1 ]] && applist+="nano\n"
-
-	footer="\ndragon-drop"
+# Checks, for each process, if it exists, if $$ is a child
+   if [[ ! -z $dtpipe ]]; then
+      for id in $dtpipe; do
+         [[ $ancestors == *$id* ]] && echo 'dtpipe' && break
+      done
+   fi
+   if [[ ! -z $isranger ]]; then
+      for id in $isranger; do
+         [[ $ancestors == *$id* ]] && echo 'ranger' && break
+      done
+   fi
+   if [[ ! -z $istabbed ]]; then
+      for id in $istabbed; do
+         [[ $ancestors == *$id* ]] && echo 'tabbed' && break
+      done
+   fi
 }
 
-#=============== SCRIPT =========================================
+# Function executed when -d flag is passed
+_get_default_app (){
+	app=$(_extcheck "$@")
+	[[ $app == *000* ]] && deep=$(_deepcheck "$@")
+	if [[ $app == *111* ]] || [[ $deep == *111* ]]; then
+		echo 1
+	fi
+	app=${app/111}
+	app=${app/000}
+	deep=${deep/111}
+	echo -n "$app"
+	echo -n "$deep"
+}
 
-trap 'rm $logfile' EXIT
+# Draw the fzf menu
+_fzf_menu (){
+	_applist
+	appsource=$(_appsource)
 
-_extcheck "$@"
+	#### Sorting ###
+		if [[ $alphsort = 1 ]];then
+			fzflist="$(echo -en "$applist" | sort)$(echo -en "$footer")"
+		else
+			fzflist="$(echo -en "$applist")$(echo -en "$footer")"
+		fi
 
-[[ -z $args ]] && echo "File(s) not found. Is the filename valid?" &&
-	exit
-[[ ! -z $unknownlist ]] && [[ $maxdeepcheck != 0 ]] &&
-	_deepcheck "${unknownlist[@]}"
+	#### Warning if multiple file types
+		if [[ $ext == 1 ]]; then
+		   echo "WARNING : multiple file types." >> $logfile
+		   echo "Opening in an application an unsupported file type could create an error" >> $logfile
+		fi
 
-_applist
+		[[ $filescount = 1 ]] && export OWCOUNT=" files : $fcount"
+		[[ $warningmsg = 1 ]] && export OWLOGFILE=$logfile
 
-#### Sorting ###
-	if [[ $alphsort = 1 ]];then
-		fzflist="$(echo -en "$applist" | sort)$(echo -en "$footer")"
+	#### Fzf menu ###
+		if [[ $warningmsg = 1 ]] && [[ ! -z $(cat $logfile) ]] || [[ $filescount = 1 ]]; then
+			output=$(echo -en "$fzflist" | fzf \
+			      --preview 'echo -e "$OWFCOLOR$OWCOUNT\e[0m"; cat $OWLOGFILE' \
+			      --color='preview-fg:160' --preview-window="60%:wrap")
+		else
+			output=$(echo -en "$fzflist" | fzf)
+		fi
+		[[ -z $output ]] && exit
+
+	 # Possible fzf options, if not configured by default with FZF_DEFAULT_OPTS:
+	 #		fzf --reverse +m
+}
+
+# Open the files selected in the fzf menu
+_open (){
+	 # I use here my own script,
+	 #	 but you can use your own
+	 # NOTE : if the app opens in the terminal, use & to run
+	 #	 the script in the background seems buggy (CPU freeze)
+
+	if [[ $appsource == dtpipe ]]; then
+		if [[ "$output" == "nano" ]]; then
+			openrule k nano "${args[@]}"
+		else
+			openrule d $output "${args[@]}" &
+		fi
+	elif [[ $appsource == ranger ]] || [[ $appsource == tabbed ]]; then
+		if [[ "$output" == "nano" ]]; then
+			for file in "${args[@]}"; do
+				echo "$file" >> $opwfile
+			done
+			echo "$(cat $opwfile)"
+		elif [[ $appsource == tabbed ]]; then
+			for file in "${args[@]}"; do
+				echo "$file" >> $opwfile
+			done
+			echo "openwith $output" >> $opwfile
+			echo "$(cat $opwfile)"
+		else
+			openrule d $output "${args[@]}" &
+		fi
 	else
-		fzflist="$(echo -en "$applist")$(echo -en "$footer")"
+		if [[ "$output" == "nano" ]]; then
+			nano "${args[@]}"
+		else
+			openrule d $output "${args[@]}" &
+		fi
 	fi
+}
 
-#### Warning if multiple file types
-	if [[ $ext == 1 ]]; then
-	   echo "WARNING : multiple file types." >> $logfile
-	   echo "Opening in an application an unsupported file type could create an error" >> $logfile
-	fi
+_default_open (){
+	$output "${args[@]}"
+}
 
-	[[ $filescount = 1 ]] && export OWCOUNT=" files : $fcount"
-	[[ $warningmsg = 1 ]] && export OWLOGFILE=$logfile
+_machinegun_open (){
+	for file in "${args[@]}"; do
+		$output "$file" &
+	done
+}
 
-#### Fzf menu ###
-	if [[ $warningmsg = 1 ]] && [[ ! -z $(cat $logfile) ]] || [[ $filescount = 1 ]]; then
-		output=$(echo -en "$fzflist" | fzf \
-		      --preview 'echo -e "$OWFCOLOR$OWCOUNT\e[0m"; cat $OWLOGFILE' \
-		      --color='preview-fg:160' --preview-window="60%:wrap")
+_init (){
+	# Init files
+	opwfile="/tmp/openwithoutput"
+	fzfpfile="/tmp/fzfzpreview"
+
+	if [ "$EUID" = 0 ]; then
+		[ ! -O $opwfile ] && rm $opwfile && touch $opwfile && chmod a=rwx $opwfile
+		[ ! -O $logfile ] && rm $logfile && touch $logfile && chmod a=rwx $logfile
+		[ ! -O $fzfpfile ] && rm $fzfpfile && touch $fzfpfile && chmod a=rwx $fzfpfile
 	else
-		output=$(echo -en "$fzflist" | fzf)
-	fi
-	[[ -z $output ]] && exit
-
- # Possible fzf options, if not configured by default with FZF_DEFAULT_OPTS (cf. man fzf):
- #		fzf --reverse +m --color hl+:160 --bind 'tab:abort,shift-right:select'
-
-#### Open the files selected ###
- # I use here my own script,
- #	 but you can use your own
- # NOTE : if the app opens in the terminal, use & to run
- #	 the script in the background seems buggy (CPU freeze)
-
-	if [[ "$output" == "nano" ]]; then
-		openrule - kitty -e $output "${args[@]}"
-	else
-		openrule d $output "${args[@]}" &
+		> $opwfile
+		> $logfile
 	fi
 
+	# Echo 'open to fzfzpreview triggers the disapearance of the drop_pipe_term
+	trap 'rm $logfile; echo "mode = open " > $fzfpfile' EXIT
+}
 
-#============================================================
-# opening script examples:
- ## simply opens all in the app selected
-#$output "${args[@]}"
+_openwithfzf (){
+	_init
+	_extcheck "$@" 1>/dev/null
 
- ## Recursive opening (risk to create many different windows,
-  #  but necessary with some applications)
-#for file in "${args[@]}"; do1
-#	$output "$file" &
-#done
+	[[ -z $args ]] && echo "File(s) not found. Is the filename valid?" &&
+		exit
+	[[ ! -z $unknownlist ]] && [[ $maxdeepcheck != 0 ]] &&
+		_deepcheck "${unknownlist[@]}" 1>/dev/null
+
+	_fzf_menu
+	_open
+
+##### If you don't use openrule, uncomment one of these below and customize it #####
+#	_default_open			# Just tun the given command with all files as arguments
+#	_machinegun_open		# Recursive opening, for loop opening each file separately
+}
+
+#==================================================================
+#=============== SCRIPT ===========================================
+#==================================================================
+
+# The -d flag allows to use openwith to output the default
+#	application to open files
+# The _openwithfzf function open in the terminal a fzf menu
+#  to manually select which app will open the files, throught
+#  a default list of 'potential applications'
+
+if [[ $1 == '-d' ]]; then
+	shift
+	_get_default_app "$@"
+else
+	_openwithfzf "$@"
+fi
