@@ -241,9 +241,9 @@ _deepcheck (){
 		if [[ $ftype == 0 ]];then
 			case $mtype in
 				image) eval $image;;
-		 	  application) eval $text;;
-		 		 text) eval $text;;
-		 		    *) eval $unknown;;
+		 	  	application) eval $text;;
+		 		text) eval $text;;
+		 		*) eval $unknown;;
 			esac
 		fi
 
