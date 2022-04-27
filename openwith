@@ -3,48 +3,52 @@
 # MADE BY twix https://github.com/Twix53791/openwith-fzf
 #=======================================================
 # This script is intended to:
-#		1) returns the default application you set associated
-#			with a file type (-d flag)
-#		2) display a fzf menu to choose dynamically
-#			an application to open a file, throught a
-#			list of potentials applications, according
-#			to the file(s) type(s)
+#	1) returns the default application associated
+#		with a file type (-d flag)
+#	2) displays a fzf menu to choose dynamically
+#		an application to open a file, throught a
+#		list of potential applications, according
+#		to the file(s) type(s)
 #
 # - The -d flag returns (echo) the default application
 #  associated to the file(s) passed as argument.
-# 		openwith -d test.odt -> libreoffice
-# - If a range of files is given as argument and it contains
-#	different file types, openwith returns as first argument
-# 	the number 1. For EACH file it returns the default program
+# 	For EACH file it returns the default program
 #	associated with.
-#		openwith -d toto.sh tata.pdf titi -> 1 nano zathura zathura
+# 		openwith -d test.odt toto.pdf -> libreoffice zathura
+#
+# - The -m flag allows the output of -d option to print as first
+#	argument the number 1 if, in the range of files given as argument
+#	several different file types are found.
+#		openwith -dm toto.sh tata.pdf titi -> 1 nano zathura zathura
 #
 # - Without the -d flag, openwith displays a fzf menu to choose
 #		the application with which to open the file.
-#	It accepts MANY files as arguments, virtually an infinite number.
-#	The setting 'maxargs' set a limit above which openwith will not
-#	 check any argument, to avoid mistakes...
-#	 By default, it is set to 100. But openwith is still fast
-#	 for hundreds, even thousands of files, at least the _deepcheck
-#	 function is not executed on a such number of files.
-#  Of course, opening these files with an application if another
-#	 ball of wax
+#
+#  It accepts MANY files as arguments, virtually an infinite number.
+#   The setting 'maxargs' set a limit above which openwith will not
+#   check any argument, to avoid mistakes...
+#   By default, it is set to 100. But openwith is still fast
+#   for hundreds, even thousands of files, at least the _deepcheck
+#   function is not executed on a such number of files.
+#		_extcheck on 200 files: 0.040 s; _deepcheck on 50 files: 0.200
+# Of course, opening a such number of files with an application is
+#  another ball of wax...
 #
 #:::::::::::::::::::::: WARNING :::::::::::::::::::::::::
 #
-#	This script is part of my personnal desktop setting.
-#  It is 'amateur' and it has been tested only in my
-#	configuration (arch linux + bspwm).
-#	I do not garantee its stability !!!
-#	Feel free to improve it!
+# This script is part of my personnal desktop setting.
+#  It's 'amateur' and it has been tested only in my
+#  configuration (arch linux + bspwm).
+#  I do not guarantee its stability !!!
+#  Feel free to improve it!
 #
 #::: SET YOUR DEFAULT APPLICATIONS ::::::::::::::::::::::
 #
 # 1) in the _applist function, see the section below,
 #		associate your application with a variable
-#			ex: [[ $gi = 1 ]] && applist+="gimp\n"
+#			ex: [[ $gi == 1)) && applist+="gimp\n"
 #		The syntax have to be that one, 'gimp' is the real
-#		name of the program, which will be take as a command
+#		name of the program, which will be taken as a command
 #		to run to open the files.
 #	2) Edit or create the variables in the 'ASSOCIATED
 #		APPLICATIONS' below.
@@ -52,9 +56,9 @@
 #		will set the category 'image', for which the default
 #		application is nomacs (echo nomacs) and the possible
 #		others applications, to display in the fzf menu, are
-#		gimp (gi variable) and also nomacs. You can add here
-#		as much as you want of "associated applications", but
-#		of course only one "default".
+#		gimp (gi variable) and also nomacs (no=1). You can add
+#		here as much as you want of "associated applications",
+#		but of course only one "default".
 #	3)	To associate the category 'image' with a file type,
 #		edit the _extcheck function (checks file extension)
 #		and the _deepcheck function (checks by mime type).
@@ -81,6 +85,8 @@
 # TIPS : echo all file types in a dir and subdirs¬:
 #		l='';for f in $(find); do t=$(file -Lb --mime-type "$f" | cut -d' ' -f1);[[ "$l" != *"$t"* ]] && echo "$t | $f";l+="$t "; done
 #
+# DEBUG/TEST IT: openwith -d $(echo "$(fd | cut -b3-)")
+#
 #============================================================
 #=== Settings ===============================================
 #============================================================
@@ -95,6 +101,11 @@ maxargs=100
 
  ## Set alphabetic sort
 alphsort=1
+
+ ## Choose the 'opening' method
+openmethod='openrule'
+#openmethod='default'
+#openmethod='machinegun'
 
  ## Warning messages file location
 logfile="/tmp/openwithlog"
@@ -155,6 +166,7 @@ vl=0	# vlc
 	video='vlc=1 && echo 'vlc''
 	text='na=1 && em=1 && at=1 && lo=1 && echo 'nano''
 	officedoc='lo=1 && em=1 && echo 'libreoffice''
+	unknown='na=1 && echo 'nano''
 
 #============ APPLICATIONS LIST ================================
 # Set here the applications associated with the variables above
@@ -166,23 +178,24 @@ vl=0	# vlc
 
 _applist (){
 
-   [[ $gi = 1 ]] && applist+="gimp\n"
-   [[ $da = 1 ]] && applist+="darktable\n"
-   [[ $vl = 1 ]] && applist+="vlc\n"
-   [[ $em = 1 ]] && applist+="emacs\n"
-   [[ $at = 1 ]] && applist+="atom\n"
-   [[ $lo = 1 ]] && applist+="libreoffice\n"
-   [[ $si = 1 ]] && applist+="sioyek\n"
-   [[ $za = 1 ]] && applist+="zathura\n"
-   [[ $fir = 1 ]] && applist+="firefox\n"
-   [[ $no = 1 ]] && applist+="nomacs\n"
-   [[ $li = 1 ]] && appalist+="litemdview\n"
-   [[ $fo = 1 ]] && applist+="fontmatrix\n"
-   [[ $na = 1 ]] && applist+="nano\n"
+   ((gi==1)) && applist+="gimp\n"
+   ((da==1)) && applist+="darktable\n"
+   ((vl==1)) && applist+="vlc\n"
+   ((em==1)) && applist+="emacs\n"
+   ((at==1)) && applist+="atom\n"
+   ((lo==1)) && applist+="libreoffice\n"
+   ((si==1)) && applist+="sioyek\n"
+   ((za==1)) && applist+="zathura\n"
+   ((fir==1)) && applist+="firefox\n"
+   ((no==1)) && applist+="nomacs\n"
+   ((li==1)) && appalist+="litemdview\n"
+   ((fo==1)) && applist+="fontmatrix\n"
+   ((na==1)) && applist+="nano\n"
 
 # Footer = applications always part of the list,
 #	for any file type
-   footer="\ndragon-drop"
+   [[ -z $applist ]] && footer="dragon-drop" ||
+   							footer="\ndragon-drop"
 }
 
 #===============================================================
@@ -190,8 +203,7 @@ _applist (){
 #===============================================================
 
 _deepcheck (){
-	n=0
-	for file in "$@"; do
+	for file in "${@:1:${maxdeepcheck}}"; do
 		mime=$(file -Lb --mime-type "$file")
 		mtype=${mime%%/*}
 		ftype=${mime##*/}
@@ -205,6 +217,7 @@ _deepcheck (){
 					   ogg) eval $video;;
 			   mpeg4-iod) eval $video;;
 	mpeg4-muxcodetable) eval $video;;
+					  jpeg) eval $image;;
 	vnd.openxmlformats-officedocument.wordprocessingml.document) eval $officedoc;;
 	vnd.oasis.opendocument.text) eval $officedoc;;
 	vnd.oasis.opendocument.text-template) eval $libreoffice;;
@@ -230,20 +243,22 @@ _deepcheck (){
 				 image) eval $image;;
 		 application) eval $text;;
 		 		  text) eval $text;;
+		 		  	  *) eval $unknown;;
 			esac
 		fi
 
 	# Check if there are differents file types
+		[[ -f $exttmp ]] && ext=$(cat $exttmp) &&
+			[[ "$ext" != "$mime" ]] && ext=1
+
 		if [[ -z $ext ]]; then
-			ext=$ftype
+			ext=$mime
 		elif [[ $ext != 1 ]]; then
-			[[ "$ext" != "$ftype" ]] && ext=1
+			[[ $ext != $mime ]] && ext=1
 		fi
 
-		((n++))
-		[[ $n -ge $maxdeepcheck ]] && break
 	done
-	[[ $ext == 1 ]] && echo -n 111
+	((ext==1)) && echo -n 111
 }
 
 _extcheck (){
@@ -254,12 +269,13 @@ _extcheck (){
 
 		# Checks if there are different files types
 			fname="${file##*/}"
-			if [[ "$fname" == *.* ]]; then
+			if [[ $fname == *.* ]]; then
 				if [[ -z $ext ]]; then
 					match="${fname##*.}"
-					[[ ${#match} -le 5 ]] && ext=$match
+					matchtype=$(file -Lb --mime-type "$file")
+					((${#match} <= 5)) && ext=$match
 				elif [[ $ext != 1 ]]; then
-					[[ "$ext" != "${fname##*\.}" ]] && ext=1
+					[[ $ext != "${fname##*\.}" ]] && ext=1
 				fi
 			fi
 		# Set the applist according to the file extensions finded
@@ -331,16 +347,21 @@ _extcheck (){
 			elif [[ $file == *.x3f ]];then 	eval $darktable
 			elif [[ $file == *.cr2 ]];then 	eval $darktable
 			### If all test failed - unknown (and execute deep check) ###
-			else unknownlist+=("$file")
+			else unknownlist+=("$file") && echo 000
 			fi
 			args+=("$file")
-		elif [[ -d $file ]] && [[ -z $dir ]]; then
-         echo "WARNING : a directory is selected!\n" >> $logfile
-         dir=1
+		elif [[ -d $file ]]; then
+			args+=("$file") && echo dragon-drop
+         [[ -z $dir ]] && echo "WARNING : a directory is selected!" >> $logfile && dir=1
 		fi
 	done
-	[[ ! -z $unknownlist ]] && echo -n 000
-	[[ $ext == 1 ]] && echo -n 111
+	[[ $ext != 1 ]] && ext=$matchtype
+	if [[ $default == 1 && ! -z $unknownlist ]]; then
+		[[ $ext == 1 ]] && echo -n 111 || echo $ext > $exttmp
+		for el in "${unknownlist[@]}"; do
+			echo "$el" >> $ufile
+		done
+	fi
 }
 
 _appsource(){
@@ -348,12 +369,11 @@ _appsource(){
    pid=$$
    until [[ -z $pid ]]; do
       pid=$(ps -o ppid= $pid | tr -d ' ')
-      [[ $pid == 1 ]] && pid=''
+      ((pid == 1 )) && pid=''		# needed to do not ask ppid of 0 pid
       ancestors+="$pid "
    done
 
 # Is any of these processus running?
-   isranger=$(pgrep ranger)
    istabbed=$(pgrep tabbed)
 	dtpipe=$(pgrep dtpipe.sh)
 
@@ -361,11 +381,6 @@ _appsource(){
    if [[ ! -z $dtpipe ]]; then
       for id in $dtpipe; do
          [[ $ancestors == *$id* ]] && echo 'dtpipe' && break
-      done
-   fi
-   if [[ ! -z $isranger ]]; then
-      for id in $isranger; do
-         [[ $ancestors == *$id* ]] && echo 'ranger' && break
       done
    fi
    if [[ ! -z $istabbed ]]; then
@@ -377,25 +392,32 @@ _appsource(){
 
 # Function executed when -d flag is passed
 _get_default_app (){
+	default=1
 	app=$(_extcheck "$@")
-	[[ $app == *000* ]] && deep=$(_deepcheck "$@")
-	if [[ $app == *111* ]] || [[ $deep == *111* ]]; then
-		echo 1
+	if [[ -f $ufile ]]; then
+		mapfile -t deepfiles < $ufile
+		deep=$(_deepcheck "${deepfiles[@]}")
 	fi
-	app=${app/111}
-	app=${app/000}
-	deep=${deep/111}
-	echo -n "$app"
-	echo -n "$deep"
+	if [[ $app == *111* || $deep == *111* ]]; then
+		((multiple == 1)) && echo 1
+	fi
+	app=${app/111}; deep=${deep/111}
+
+ # Reconstruct an unique list, if $deep exists
+ 	if [[ -f $ufile ]]; then
+ 		for el in $deep; do
+ 			app=${app/000/$el}
+ 		done
+ 	fi
+	echo "$app"
 }
 
 # Draw the fzf menu
 _fzf_menu (){
 	_applist
-	appsource=$(_appsource)
 
 	#### Sorting ###
-		if [[ $alphsort = 1 ]];then
+		if ((alphsort == 1 ));then
 			fzflist="$(echo -en "$applist" | sort)$(echo -en "$footer")"
 		else
 			fzflist="$(echo -en "$applist")$(echo -en "$footer")"
@@ -407,11 +429,12 @@ _fzf_menu (){
 		   echo "Opening in an application an unsupported file type could create an error" >> $logfile
 		fi
 
-		[[ $filescount = 1 ]] && export OWCOUNT=" files : $fcount"
-		[[ $warningmsg = 1 ]] && export OWLOGFILE=$logfile
+		((filescount == 1)) && export OWCOUNT=" files : $fcount"
+		((warningmsg == 1)) && export OWLOGFILE=$logfile
 
 	#### Fzf menu ###
-		if [[ $warningmsg = 1 ]] && [[ ! -z $(cat $logfile) ]] || [[ $filescount = 1 ]]; then
+		[[ ! -f $logfile ]] && touch $logfile
+		if [[ $warningmsg = 1 && ! -z $(cat $logfile) || $filescount = 1 ]]; then
 			output=$(echo -en "$fzflist" | fzf \
 			      --preview 'echo -e "$OWFCOLOR$OWCOUNT\e[0m"; cat $OWLOGFILE' \
 			      --color='preview-fg:160' --preview-window="60%:wrap")
@@ -430,30 +453,23 @@ _open (){
 	 #	 but you can use your own
 	 # NOTE : if the app opens in the terminal, use & to run
 	 #	 the script in the background seems buggy (CPU freeze)
+	appsource=$(_appsource)
 
 	if [[ $appsource == dtpipe ]]; then
-		if [[ "$output" == "nano" ]]; then
+		if [[ $output == nano ]]; then
 			openrule k nano "${args[@]}"
 		else
 			openrule d $output "${args[@]}" &
 		fi
-	elif [[ $appsource == ranger ]] || [[ $appsource == tabbed ]]; then
-		if [[ "$output" == "nano" ]]; then
+	elif [[ $appsource == tabbed ]]; then
 			for file in "${args[@]}"; do
 				echo "$file" >> $opwfile
 			done
-			echo "$(cat $opwfile)"
-		elif [[ $appsource == tabbed ]]; then
-			for file in "${args[@]}"; do
-				echo "$file" >> $opwfile
-			done
-			echo "openwith $output" >> $opwfile
-			echo "$(cat $opwfile)"
-		else
-			openrule d $output "${args[@]}" &
-		fi
+			[[ $output != nano ]] &&
+				echo "openwith $output" > $totabbed
+			echo "$(<$opwfile)"
 	else
-		if [[ "$output" == "nano" ]]; then
+		if [[ $output == nano ]]; then
 			nano "${args[@]}"
 		else
 			openrule d $output "${args[@]}" &
@@ -474,19 +490,26 @@ _machinegun_open (){
 _init (){
 	# Init files
 	opwfile="/tmp/openwithoutput"
+	totabbed="/tmp/openwithtotabbed"
 	fzfpfile="/tmp/fzfzpreview"
+	ufile="/tmp/openwith_unknownlist"
+	exttmp="/tmp/openwithext"
+	[[ -f $totabbed ]] && rm $totabbed
 
-	if [ "$EUID" = 0 ]; then
-		[ ! -O $opwfile ] && rm $opwfile && touch $opwfile && chmod a=rwx $opwfile
-		[ ! -O $logfile ] && rm $logfile && touch $logfile && chmod a=rwx $logfile
-		[ ! -O $fzfpfile ] && rm $fzfpfile && touch $fzfpfile && chmod a=rwx $fzfpfile
-	else
-		> $opwfile
-		> $logfile
+	# Fix a bug (https://unix.stackexchange.com/questions/503111/group-permissions-for-root-not-working-in-tmp)
+	if (($EUID == 0)); then
+		[[ ! -O $fzfpfile ]] && rm $fzfpfile && touch $fzfpfile && chmod a=rwx $fzfpfile
 	fi
+}
+
+_exit (){
+	[[ -f $opwfile ]] && rm $opwfile
+	[[ -f $logfile ]] && rm $logfile
+	[[ -f $ufile ]] && rm $ufile
+	[[ -f $exttmp ]] && rm $exttmp
 
 	# Echo 'open to fzfzpreview triggers the disapearance of the drop_pipe_term
-	trap 'rm $logfile; echo "mode = open " > $fzfpfile' EXIT
+	echo "mode = open " > $fzfpfile
 }
 
 _openwithfzf (){
@@ -495,15 +518,19 @@ _openwithfzf (){
 
 	[[ -z $args ]] && echo "File(s) not found. Is the filename valid?" &&
 		exit
-	[[ ! -z $unknownlist ]] && [[ $maxdeepcheck != 0 ]] &&
+	((${#args[@]} != ${#@})) && echo "Some file(s) not found." >> $logfile
+	[[ ! -z $unknownlist && $maxdeepcheck != 0 ]] &&
 		_deepcheck "${unknownlist[@]}" 1>/dev/null
 
 	_fzf_menu
-	_open
 
-##### If you don't use openrule, uncomment one of these below and customize it #####
-#	_default_open			# Just tun the given command with all files as arguments
-#	_machinegun_open		# Recursive opening, for loop opening each file separately
+	if [[ $openmethod == openrule ]]; then
+		_open
+	elif [[ $openmethod == default ]]; then
+		_default_open
+	elif [[ $openmethod == machinegun ]]; then
+		_machinegun
+	fi
 }
 
 #==================================================================
@@ -516,8 +543,23 @@ _openwithfzf (){
 #  to manually select which app will open the files, throught
 #  a default list of 'potential applications'
 
-if [[ $1 == '-d' ]]; then
-	shift
+# Determines if a flag is given
+if [[ $1 == *-* ]]; then
+   opt=${1/-}; shift
+   if [[ $opt == *d* ]]; then
+      flag=d; opt=${opt/d}
+      [[ $opt == *m* ]] && flag=dm && opt=${opt/m}
+      [[ $1 == -m ]] && flag=dm && shift
+      [[ ! -z $opt ]] && flag=''
+   fi
+fi
+
+trap '_exit' EXIT
+
+# Runs functions
+if [[ ! -z $flag ]]; then
+	[[ $flag == *m* ]] && multiple=1
+	_init
 	_get_default_app "$@"
 else
 	_openwithfzf "$@"
