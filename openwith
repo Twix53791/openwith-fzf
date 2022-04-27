@@ -210,40 +210,40 @@ _deepcheck (){
 
 	# Set here rules responding to file types
 		case $ftype in
-						pdf) eval $pdf;;
-					  epub) eval $epub;;
-				 vnd.djvu) eval $djvu;;
- 	vnd.djvu+multipage) eval $djvu;;
-					   ogg) eval $video;;
-			   mpeg4-iod) eval $video;;
-	mpeg4-muxcodetable) eval $video;;
-					  jpeg) eval $image;;
+			pdf) 	eval $pdf;;
+			epub) 	eval $epub;;
+			vnd.djvu) eval $djvu;;
+			vnd.djvu+multipage) eval $djvu;;
+			ogg) 	eval $video;;
+			mpeg4-iod) eval $video;;
+			mpeg4-muxcodetable) eval $video;;
+			jpeg)	eval $image;;
 	vnd.openxmlformats-officedocument.wordprocessingml.document) eval $officedoc;;
 	vnd.oasis.opendocument.text) eval $officedoc;;
 	vnd.oasis.opendocument.text-template) eval $libreoffice;;
 	vnd.oasis.opendocument.presentation) eval $officedoc;;
  	vnd.openxmlformats-officedocument.spreadsheetml.sheet) eval $officedoc;;
-		 	vnd.ms-excel) eval $officedoc;;
-					msword) eval $officedoc;;
-		 			 excel) eval $libreoffice;;
-		 		  msexcel) eval $libreoffice;;
-		 	mspowerpoint) eval $libreoffice;;
-						rtf) eval $libreoffice;;
-						ppt) eval $emacs;;
-						csv) eval $officedoc;;
-					 plain) eval $text;;
-					  json) eval $json;;
-				  x-empty) eval $text;;
-		 				  *) ftype=0;;
+			vnd.ms-excel) eval $officedoc;;
+			msword)	eval $officedoc;;
+			excel) 	eval $libreoffice;;
+			msexcel) eval $libreoffice;;
+			mspowerpoint) eval $libreoffice;;
+			rtf) 	eval $libreoffice;;
+			ppt) 	eval $emacs;;
+			csv) 	eval $officedoc;;
+			plain) 	eval $text;;
+			json) 	eval $json;;
+			x-empty) eval $text;;
+			*) ftype=0;;
 		esac
 
 	# Set here general rules to mime types, if no file type is found above
 		if [[ $ftype == 0 ]];then
 			case $mtype in
-				 image) eval $image;;
-		 application) eval $text;;
-		 		  text) eval $text;;
-		 		  	  *) eval $unknown;;
+				image) eval $image;;
+		 	  application) eval $text;;
+		 		 text) eval $text;;
+		 		    *) eval $unknown;;
 			esac
 		fi
 
