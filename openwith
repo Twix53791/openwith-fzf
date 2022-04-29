@@ -258,7 +258,7 @@ _deepcheck (){
 		fi
 
 	done
-	((ext==1)) && echo -n 111
+	[[ ext == 1 ]] && echo -n 111
 }
 
 _extcheck (){
