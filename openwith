@@ -3,12 +3,12 @@
 # MADE BY twix https://github.com/Twix53791/openwith-fzf
 #=======================================================
 # This script is intended to:
-#	1) returns the default application associated
-#		with a file type (-d flag)
-#	2) displays a fzf menu to choose dynamically
-#		an application to open a file, throught a
-#		list of potential applications, according
-#		to the file(s) type(s)
+#		1) returns the default application associated
+#			with a file type (-d flag)
+#		2) displays a fzf menu to choose dynamically
+#			an application to open a file, throught a
+#			list of potential applications, according
+#			to the file(s) type(s)
 #
 # - The -d flag returns (echo) the default application
 #  associated to the file(s) passed as argument.
@@ -163,8 +163,8 @@ vl=0	# vlc
 	genericimage='em=1 && da=1 && gi=1 && no=1 && echo 'nomacs''
 	rareimage='gi=1 && da=1 && echo 'gimp''
 	image='da=1 && gi=1 && no=1 && echo 'nomacs''
-	video='vlc=1 && echo 'vlc''
-	text='na=1 && em=1 && at=1 && lo=1 && echo 'nano''
+	video='vl=1 && ha=1 && echo 'vlc''
+	text='na=1 && em=1 && at=1 && lo=1 && echo nano'
 	officedoc='lo=1 && em=1 && echo 'libreoffice''
 	unknown='na=1 && echo 'nano''
 
@@ -180,6 +180,7 @@ _applist (){
 
    ((gi==1)) && applist+="gimp\n"
    ((da==1)) && applist+="darktable\n"
+   ((ha==1)) && applist+="handbrake\n"
    ((vl==1)) && applist+="vlc\n"
    ((em==1)) && applist+="emacs\n"
    ((at==1)) && applist+="atom\n"
@@ -198,6 +199,15 @@ _applist (){
    							footer="\ndragon-drop"
 }
 
+# Use this to execute a different command than the one
+#  displayed in the fzf menu
+_command (){
+case $1 in
+	handbrake) echo "ghb";;
+			  *) echo "$1";;
+esac
+}
+
 #===============================================================
 #=============== FUNCTIONS =====================================
 #===============================================================
@@ -210,40 +220,41 @@ _deepcheck (){
 
 	# Set here rules responding to file types
 		case $ftype in
-			pdf) 	eval $pdf;;
-			epub) 	eval $epub;;
-			vnd.djvu) eval $djvu;;
-			vnd.djvu+multipage) eval $djvu;;
-			ogg) 	eval $video;;
-			mpeg4-iod) eval $video;;
-			mpeg4-muxcodetable) eval $video;;
-			jpeg)	eval $image;;
+						pdf) eval $pdf;;
+					  epub) eval $epub;;
+				 vnd.djvu) eval $djvu;;
+ 	vnd.djvu+multipage) eval $djvu;;
+					   ogg) eval $video;;
+			   mpeg4-iod) eval $video;;
+	mpeg4-muxcodetable) eval $video;;
+					  jpeg) eval $image;;
 	vnd.openxmlformats-officedocument.wordprocessingml.document) eval $officedoc;;
 	vnd.oasis.opendocument.text) eval $officedoc;;
 	vnd.oasis.opendocument.text-template) eval $libreoffice;;
 	vnd.oasis.opendocument.presentation) eval $officedoc;;
  	vnd.openxmlformats-officedocument.spreadsheetml.sheet) eval $officedoc;;
-			vnd.ms-excel) eval $officedoc;;
-			msword)	eval $officedoc;;
-			excel) 	eval $libreoffice;;
-			msexcel) eval $libreoffice;;
-			mspowerpoint) eval $libreoffice;;
-			rtf) 	eval $libreoffice;;
-			ppt) 	eval $emacs;;
-			csv) 	eval $officedoc;;
-			plain) 	eval $text;;
-			json) 	eval $json;;
-			x-empty) eval $text;;
-			*) ftype=0;;
+		 	vnd.ms-excel) eval $officedoc;;
+					msword) eval $officedoc;;
+		 			 excel) eval $libreoffice;;
+		 		  msexcel) eval $libreoffice;;
+		 	mspowerpoint) eval $libreoffice;;
+						rtf) eval $libreoffice;;
+						ppt) eval $emacs;;
+						csv) eval $officedoc;;
+					 plain) eval $text;;
+					  json) eval $json;;
+				  x-empty) eval $text;;
+		 				  *) ftype=0;;
 		esac
 
 	# Set here general rules to mime types, if no file type is found above
 		if [[ $ftype == 0 ]];then
 			case $mtype in
-				image) eval $image;;
-		 	  	application) eval $text;;
-		 		text) eval $text;;
-		 		*) eval $unknown;;
+				 image) eval $image;;
+				 video) eval $video;;
+		 application) eval $text;;
+		 		  text) eval $text;;
+		 		  	  *) eval $unknown;;
 			esac
 		fi
 
@@ -258,7 +269,7 @@ _deepcheck (){
 		fi
 
 	done
-	[[ ext == 1 ]] && echo -n 111
+	[[ $ext == 1 ]] && echo -n 111
 }
 
 _extcheck (){
@@ -286,6 +297,8 @@ _extcheck (){
 			elif [[ $file == *.png ]];then 	eval $genericimage
 			elif [[ $file == *.NEF ]];then 	eval $nef
 			elif [[ $file == *.mp4 ]];then 	eval $video
+			elif [[ $file == *.mkv ]];then 	eval $video
+			elif [[ $file == *.avi ]];then 	eval $video
 			elif [[ $file == *.svg ]];then 	eval $svg
 
 			elif [[ $file == *.md ]];then 	eval $md
@@ -453,37 +466,38 @@ _open (){
 	 #	 but you can use your own
 	 # NOTE : if the app opens in the terminal, use & to run
 	 #	 the script in the background seems buggy (CPU freeze)
-	appsource=$(_appsource)
 
+	cmd=$(_command "$output")
+	appsource=$(_appsource)
 	if [[ $appsource == dtpipe ]]; then
-		if [[ $output == nano ]]; then
-			openrule k nano "${args[@]}"
+		if [[ $cmd == nano ]]; then
+			openrule -k nano "${args[@]}"
 		else
-			openrule d $output "${args[@]}" &
+			openrule -d $cmd "${args[@]}" &
 		fi
 	elif [[ $appsource == tabbed ]]; then
 			for file in "${args[@]}"; do
 				echo "$file" >> $opwfile
 			done
-			[[ $output != nano ]] &&
-				echo "openwith $output" > $totabbed
+			[[ $cmd != nano ]] &&
+				echo "openwith $cmd" > $totabbed
 			echo "$(<$opwfile)"
 	else
-		if [[ $output == nano ]]; then
+		if [[ $cmd == nano ]]; then
 			nano "${args[@]}"
 		else
-			openrule d $output "${args[@]}" &
+			openrule -d $cmd "${args[@]}" &
 		fi
 	fi
 }
 
 _default_open (){
-	$output "${args[@]}"
+	$cmd "${args[@]}"
 }
 
 _machinegun_open (){
 	for file in "${args[@]}"; do
-		$output "$file" &
+		$cmd "$file" &
 	done
 }
 
