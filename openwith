@@ -50,6 +50,10 @@
 #		The syntax have to be that one, 'gimp' is the real
 #		name of the program, which will be taken as a command
 #		to run to open the files.
+		If you want to display a different name in the fzf menu
+		than the command run, set in _applist the custom name, then
+		use the _command function to set the command associated with
+		this name.
 #	2) Edit or create the variables in the 'ASSOCIATED
 #		APPLICATIONS' below.
 #			ex: image='gi=1 && no=1 && echo 'nomacs''
